@@ -36,10 +36,11 @@
 #include <QLineEdit>
 #include <QSpinBox>
 #include <QTableWidget>
+#include <QWidget>
 
 #include "guiapplicationcomponent.h"
 
-class AdvancedSettings final : public GUIApplicationComponent<QTableWidget>
+class AdvancedSettings final : public GUIApplicationComponent<QWidget>
 {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(AdvancedSettings)
@@ -55,6 +56,7 @@ signals:
 
 private slots:
     void updateInterfaceAddressCombo();
+    void filterSettings(const QString &searchText);
 
 #ifndef QBT_USES_LIBTORRENT2
     void updateCacheSpinSuffix(int value);
@@ -67,6 +69,11 @@ private slots:
 private:
     void loadAdvancedSettings();
     template <typename T> void addRow(int row, const QString &text, T *widget);
+    void setCellWidget(int row, int column, QWidget *widget);
+    void setItem(int row, int column, QTableWidgetItem *item);
+
+    QLineEdit *m_searchBox = nullptr;
+    QTableWidget *m_table = nullptr;
 
     QSpinBox m_spinBoxSaveResumeDataInterval, m_spinBoxSaveStatisticsInterval, m_spinBoxTorrentFileSizeLimit, m_spinBoxBdecodeDepthLimit, m_spinBoxBdecodeTokenLimit,
              m_spinBoxAsyncIOThreads, m_spinBoxFilePoolSize, m_spinBoxCheckingMemUsage, m_spinBoxDiskQueueSize,

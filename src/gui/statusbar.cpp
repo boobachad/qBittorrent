@@ -282,12 +282,37 @@ void StatusBar::updateSpeedLabels()
     dlSpeedLbl += u" (" + Utils::Misc::friendlyUnit(sessionStatus.totalPayloadDownload) + u')';
     m_dlSpeedLbl->setText(dlSpeedLbl);
 
+    // Build download tooltip with breakdown
+    const qint64 dlOverhead = sessionStatus.ipOverheadDownload + sessionStatus.dhtDownload + sessionStatus.trackerDownload;
+    QString dlTooltip = tr("Download speed: %1\nPayload: %2\nProtocol overhead: %3")
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.downloadRate, true))
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.payloadDownloadRate, true))
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.ipOverheadDownloadRate + sessionStatus.dhtDownloadRate + sessionStatus.trackerDownloadRate, true));
+    dlTooltip += tr("\n\nTotal downloaded: %1\nPayload: %2\nProtocol overhead: %3")
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.totalDownload))
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.totalPayloadDownload))
+        .arg(Utils::Misc::friendlyUnit(dlOverhead));
+    m_dlSpeedLbl->setToolTip(dlTooltip);
+
     QString upSpeedLbl = Utils::Misc::friendlyUnit(sessionStatus.payloadUploadRate, true);
     const int upSpeedLimit = BitTorrent::Session::instance()->uploadSpeedLimit();
     if (upSpeedLimit > 0)
         upSpeedLbl += u" [" + Utils::Misc::friendlyUnit(upSpeedLimit, true) + u']';
     upSpeedLbl += u" (" + Utils::Misc::friendlyUnit(sessionStatus.totalPayloadUpload) + u')';
     m_upSpeedLbl->setText(upSpeedLbl);
+
+    // Build upload tooltip with breakdown
+    const qint64 upOverhead = sessionStatus.ipOverheadUpload + sessionStatus.dhtUpload + sessionStatus.trackerUpload;
+    QString upTooltip = tr("Upload speed: %1\nPayload: %2\nProtocol overhead: %3")
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.uploadRate, true))
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.payloadUploadRate, true))
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.ipOverheadUploadRate + sessionStatus.dhtUploadRate + sessionStatus.trackerUploadRate, true));
+    upTooltip += tr("\n\nTotal uploaded: %1\nPayload: %2\nProtocol overhead: %3")
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.totalUpload))
+        .arg(Utils::Misc::friendlyUnit(sessionStatus.totalPayloadUpload))
+        .arg(Utils::Misc::friendlyUnit(upOverhead));
+    upTooltip += tr("\n\nNote: Rate limits apply to payload only by default.\nEnable 'Apply rate limit to transport overhead' in Options > Speed to include protocol overhead.");
+    m_upSpeedLbl->setToolTip(upTooltip);
 }
 
 void StatusBar::refresh()

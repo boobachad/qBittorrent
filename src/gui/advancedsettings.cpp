@@ -35,6 +35,7 @@
 #include <QHostAddress>
 #include <QLabel>
 #include <QNetworkInterface>
+#include <QVBoxLayout>
 
 #include "base/bittorrent/session.h"
 #include "base/global.h"
@@ -186,21 +187,38 @@ namespace
 AdvancedSettings::AdvancedSettings(IGUIApplication *app, QWidget *parent)
     : GUIApplicationComponent(app, parent)
 {
-    // column
-    setColumnCount(COL_COUNT);
+    // Create main layout
+    auto *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(4);
+
+    // Create search box
+    m_searchBox = new QLineEdit(this);
+    m_searchBox->setPlaceholderText(tr("Search settings"));
+    m_searchBox->setClearButtonEnabled(true);
+    mainLayout->addWidget(m_searchBox);
+
+    // Create table
+    m_table = new QTableWidget(this);
+    mainLayout->addWidget(m_table);
+
+    // Setup table
+    m_table->setColumnCount(COL_COUNT);
     const QStringList header = {tr("Setting"), tr("Value", "Value set for this setting")};
-    setHorizontalHeaderLabels(header);
-    // row
-    setRowCount(ROW_COUNT);
-    verticalHeader()->setVisible(false);
-    // etc.
-    setAlternatingRowColors(true);
-    setSelectionMode(QAbstractItemView::NoSelection);
-    setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_table->setHorizontalHeaderLabels(header);
+    m_table->setRowCount(ROW_COUNT);
+    m_table->verticalHeader()->setVisible(false);
+    m_table->setAlternatingRowColors(true);
+    m_table->setSelectionMode(QAbstractItemView::NoSelection);
+    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
     // Load settings
     loadAdvancedSettings();
-    resizeColumnToContents(0);
-    horizontalHeader()->setStretchLastSection(true);
+    m_table->resizeColumnToContents(0);
+    m_table->horizontalHeader()->setStretchLastSection(true);
+
+    // Connect search functionality
+    connect(m_searchBox, &QLineEdit::textChanged, this, &AdvancedSettings::filterSettings);
 }
 
 void AdvancedSettings::saveAdvancedSettings() const
@@ -1027,4 +1045,61 @@ void AdvancedSettings::addRow(const int row, const QString &text, T *widget)
         connect(widget, qOverload<int>(&QComboBox::currentIndexChanged), this, &AdvancedSettings::settingsChanged);
     else if constexpr (std::is_same_v<T, QLineEdit>)
         connect(widget, &QLineEdit::textChanged, this, &AdvancedSettings::settingsChanged);
+}
+
+void AdvancedSettings::setCellWidget(int row, int column, QWidget *widget)
+{
+    m_table->setCellWidget(row, column, widget);
+}
+
+void AdvancedSettings::setItem(int row, int column, QTableWidgetItem *item)
+{
+    m_table->setItem(row, column, item);
+}
+
+void AdvancedSettings::filterSettings(const QString &searchText)
+{
+    const QString searchLower = searchText.toLower();
+    int firstMatchRow = -1;
+    
+    for (int row = 0; row < m_table->rowCount(); ++row)
+    {
+        // Get the setting name label widget
+        QWidget *widget = m_table->cellWidget(row, PROPERTY);
+        auto *label = qobject_cast<QLabel *>(widget);
+        
+        if (!label)
+        {
+            // Defensive check: keep rows without labels visible
+            // All rows created by addRow() should have labels, but this handles edge cases
+            m_table->setRowHidden(row, false);
+            continue;
+        }
+        
+        const QString settingText = label->text().toLower();
+        
+        if (searchLower.isEmpty())
+        {
+            // Show all rows when search is empty
+            m_table->setRowHidden(row, false);
+        }
+        else
+        {
+            // Show only rows that contain the search text
+            const bool matches = settingText.contains(searchLower);
+            m_table->setRowHidden(row, !matches);
+            
+            // Remember the first match for scrolling
+            if (matches && firstMatchRow == -1)
+            {
+                firstMatchRow = row;
+            }
+        }
+    }
+    
+    // Scroll to the first match if any
+    if (firstMatchRow >= 0)
+    {
+        m_table->scrollTo(m_table->model()->index(firstMatchRow, 0), QAbstractItemView::PositionAtTop);
+    }
 }
