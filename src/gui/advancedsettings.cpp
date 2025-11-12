@@ -1070,7 +1070,8 @@ void AdvancedSettings::filterSettings(const QString &searchText)
         
         if (!label)
         {
-            // Keep rows without labels visible (section headers)
+            // Defensive check: keep rows without labels visible
+            // All rows created by addRow() should have labels, but this handles edge cases
             m_table->setRowHidden(row, false);
             continue;
         }
